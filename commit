@@ -42,36 +42,12 @@ Respond with ONLY the commit message, no explanations or additional text."
 
 COMMIT_MSG=$(claude -p "$PROMPT")
 
-# Display the generated commit message
+# Commit with the generated message
+git commit -m "$COMMIT_MSG"
+
+# Display the commit message that was used
 echo ""
-echo "Generated commit message:"
+echo "Committed with message:"
 echo "------------------------"
 echo "$COMMIT_MSG"
 echo "------------------------"
-echo ""
-
-# Ask for confirmation
-read -p "Use this commit message? (y/n/e to edit): " -n 1 -r
-echo ""
-
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    git commit -m "$COMMIT_MSG"
-    echo "Committed successfully!"
-elif [[ $REPLY =~ ^[Ee]$ ]]; then
-    TEMP_FILE=$(mktemp)
-    echo "$COMMIT_MSG" > "$TEMP_FILE"
-    ${EDITOR:-vi} "$TEMP_FILE"
-    EDITED_MSG=$(cat "$TEMP_FILE")
-    rm "$TEMP_FILE"
-
-    if [ -n "$EDITED_MSG" ]; then
-        git commit -m "$EDITED_MSG"
-        echo "Committed successfully with edited message!"
-    else
-        echo "Commit cancelled (empty message)"
-        exit 1
-    fi
-else
-    echo "Commit cancelled"
-    exit 1
-fi
