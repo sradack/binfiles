@@ -1,0 +1,76 @@
+#!/bin/bash
+
+set -e
+
+# Check if we're in a git repository
+if ! git rev-parse --git-dir > /dev/null 2>&1; then
+    echo "Error: Not a git repository"
+    exit 1
+fi
+
+# Check if there are staged changes
+if git diff --cached --quiet; then
+    echo "Error: No staged changes to commit"
+    echo "Use 'git add' to stage changes first"
+    exit 1
+fi
+
+# Get the staged diff
+DIFF=$(git diff --cached)
+
+# Get recent commit messages for style reference
+RECENT_COMMITS=$(git log -5 --pretty=format:"%s" 2>/dev/null || echo "")
+
+# Generate commit message using claude
+echo "Generating commit message..."
+PROMPT="Based on the following staged changes, write a concise git commit message that:
+- Summarizes what changed and why
+- Uses imperative mood (e.g., 'Add feature' not 'Added feature')
+- Is concise (1-2 sentences for simple changes)
+- Follows conventional commit style if appropriate (feat:, fix:, refactor:, etc.)
+
+Recent commits in this repo for style reference:
+$RECENT_COMMITS
+
+Staged changes:
+\`\`\`
+$DIFF
+\`\`\`
+
+Respond with ONLY the commit message, no explanations or additional text."
+
+COMMIT_MSG=$(claude -p "$PROMPT")
+
+# Display the generated commit message
+echo ""
+echo "Generated commit message:"
+echo "------------------------"
+echo "$COMMIT_MSG"
+echo "------------------------"
+echo ""
+
+# Ask for confirmation
+read -p "Use this commit message? (y/n/e to edit): " -n 1 -r
+echo ""
+
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    git commit -m "$COMMIT_MSG"
+    echo "Committed successfully!"
+elif [[ $REPLY =~ ^[Ee]$ ]]; then
+    TEMP_FILE=$(mktemp)
+    echo "$COMMIT_MSG" > "$TEMP_FILE"
+    ${EDITOR:-vi} "$TEMP_FILE"
+    EDITED_MSG=$(cat "$TEMP_FILE")
+    rm "$TEMP_FILE"
+
+    if [ -n "$EDITED_MSG" ]; then
+        git commit -m "$EDITED_MSG"
+        echo "Committed successfully with edited message!"
+    else
+        echo "Commit cancelled (empty message)"
+        exit 1
+    fi
+else
+    echo "Commit cancelled"
+    exit 1
+fi
