@@ -40,7 +40,7 @@ $DIFF
 
 Respond with ONLY the commit message, no explanations or additional text."
 
-COMMIT_MSG=$(claude -p "$PROMPT")
+COMMIT_MSG=$(claude -p "$PROMPT" < /dev/null)
 
 # Commit with the generated message
 git commit -m "$COMMIT_MSG"
