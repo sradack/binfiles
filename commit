@@ -23,11 +23,11 @@ RECENT_COMMITS=$(git log -5 --pretty=format:"%s" 2>/dev/null || echo "")
 
 # Generate commit message using claude
 echo "Generating commit message..."
-PROMPT="Based on the following staged changes, write a concise git commit message that:
-- ALWAYS uses conventional commit format with a prefix (feat:, fix:, refactor:, docs:, style:, test:, chore:, perf:, ci:, build:, etc.)
-- Summarizes what changed and why
+PROMPT="Based on the following staged changes, write a git commit message with:
+- A summary line using conventional commit format (feat:, fix:, refactor:, docs:, style:, test:, chore:, perf:, ci:, build:, etc.)
 - Uses imperative mood (e.g., 'Add feature' not 'Added feature')
-- Is concise (1-2 sentences for simple changes)
+- A blank line after the summary
+- A description body explaining what changed and why, based on the diff
 - Does NOT include any attribution, signature, or mention of AI/Claude/Anthropic
 
 Recent commits in this repo for style reference:
@@ -38,12 +38,12 @@ Staged changes:
 $DIFF
 \`\`\`
 
-Respond with ONLY the commit message, no explanations or additional text."
+Respond with ONLY the commit message (summary + blank line + description), no other text."
 
 COMMIT_MSG=$(claude -p "$PROMPT" < /dev/null)
 
 # Commit with the generated message
-git commit -m "$COMMIT_MSG"
+echo "$COMMIT_MSG" | git commit -F -
 
 # Display the commit message that was used
 echo ""
